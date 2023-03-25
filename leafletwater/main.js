@@ -7,6 +7,8 @@ import L from 'leaflet'
 
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 
+import parseGeoraster from 'georaster';
+import GeoRasterLayer from 'georaster-layer-for-leaflet';
 
 
 let provider = new OpenStreetMapProvider();
@@ -27,8 +29,8 @@ const map = L.map('map', {
 });
 map.addControl(searchControl);
 
-var southWest = L.latLng(30.396308, -180),
-  northEast = L.latLng(70.384358, -60.885444);
+var southWest = L.latLng(0, -180),
+  northEast = L.latLng(90, -60.885444);
 var bounds = L.latLngBounds(southWest, northEast);
 
 L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}{r}.{ext}', {
@@ -52,18 +54,52 @@ function getColor(d) {
                 '#238b45';
 }
 
-L.geoPackageFeatureLayer([], {
-  geoPackageUrl: 'https://temmdata.s3.us-east-005.backblazeb2.com/violations.gpkg',
-  layerName: 'violations',
-  style: function(feature) {
-    return {
-      fillColor: getColor(feature.properties.violations),
-      weight: 0.2,
-      opacity: 1,
-      color: 'white',
-      dashArray: '3',
-      fillOpacity: 0.7
-    };
-  },
+// L.geoPackageFeatureLayer([], {
+//   geoPackageUrl: 'https://temmdata.s3.us-east-005.backblazeb2.com/violations.gpkg',
+//   layerName: 'violations',
+//   style: function(feature) {
+//     return {
+//       fillColor: getColor(feature.properties.violations),
+//       weight: 0.2,
+//       opacity: 1,
+//       color: 'white',
+//       dashArray: '3',
+//       fillOpacity: 0.7
+//     };
+//   },
 
-}).addTo(map);
+// }).addTo(map);
+
+var url_to_geotiff_file = 'https://temmdata.s3.us-east-005.backblazeb2.com/cogviolations.tif';
+
+fetch(url_to_geotiff_file)
+.then(response => response.arrayBuffer())
+.then(arrayBuffer => {
+  parseGeoraster(arrayBuffer).then(georaster => {
+    const min = 0;
+    const max = georaster.maxs[0];
+
+    // available color scales can be found by running console.log(chroma.brewer);
+
+    var layer = new GeoRasterLayer({
+        georaster: georaster,
+        opacity: 0.7,
+        pixelValuesToColorFn: function(pixelValues) {
+          var pixelValue = pixelValues[0]; // there's just one band in this raster
+          // if there's zero wind, don't return a color
+          if (pixelValue < 0) return null;
+          
+
+          // scale to 0 - 1 used by chroma
+          //var scaledPixelValue = (pixelValue - min) / max;
+
+          var color = getColor(pixelValue);
+
+          return color;
+        },
+        resolution: 256
+    });
+    layer.addTo(map);
+
+  });
+});
