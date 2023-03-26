@@ -9,39 +9,26 @@ import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 
 import parseGeoraster from 'georaster';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
-
+import geoblaze from 'geoblaze';
 
 let provider = new OpenStreetMapProvider();
 
-const searchControl = new GeoSearchControl({
-  provider: provider,
-  autoComplete: true, // optional: true|false  - default true
-  autoCompleteDelay: 250,
-  style: 'bar',
-  params: {
-    countrycodes: 'us' // limit search results to Canada & United States
-  }
-});
+
+
+
 
 const map = L.map('map', {
   center: [35.50, -90],
   zoom: 5
 });
-map.addControl(searchControl);
 
 var southWest = L.latLng(0, -180),
   northEast = L.latLng(90, -60.885444);
 var bounds = L.latLngBounds(southWest, northEast);
 
-L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}{r}.{ext}', {
-  attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  subdomains: 'abcd',
-  ext: 'png',
-  minNativeZoom: 4,
-  minZoom: 4,
-  tms: false,
-  bounds: bounds
-}).addTo(map);
+
+
+
 
 function getColor(d) {
   return d > 200 ? '#b10026' :
@@ -51,6 +38,7 @@ function getColor(d) {
           d > 20 ? '#feb24c' :
             d > 10 ? '#ffeda0' :
               d > 5 ? '#ffffcc' :
+              d > 0 ? '#f6ffcc':
                 '#238b45';
 }
 
@@ -76,9 +64,18 @@ fetch(url_to_geotiff_file)
 .then(response => response.arrayBuffer())
 .then(arrayBuffer => {
   parseGeoraster(arrayBuffer).then(georaster => {
-    const min = 0;
-    const max = georaster.maxs[0];
 
+    L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}{r}.{ext}', {
+      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      subdomains: 'abcd',
+      ext: 'png',
+      minNativeZoom: 4,
+      minZoom: 4,
+      maxNativeZoom: 11,
+      maxZoom: 11,
+      tms: false,
+      bounds: bounds
+    }).addTo(map);
     // available color scales can be found by running console.log(chroma.brewer);
 
     var layer = new GeoRasterLayer({
@@ -97,9 +94,32 @@ fetch(url_to_geotiff_file)
 
           return color;
         },
-        resolution: 256
+        resolution: 256,
+
+
+        });
+        function popupFormat(search) {
+          var point = geoblaze.identify(georaster,[search.result.x, search.result.y]);
+          if (point<0) {
+            var featureInfo = 'No Data'
+          } else {
+            var featureInfo = point +' Violations';
+          }
+          
+          return featureInfo;
+        };
+        const searchControl = new GeoSearchControl({
+          provider: provider,
+          autoComplete: true, // optional: true|false  - default true
+          autoCompleteDelay: 250,
+          style: 'bar',
+          showPopup: true,           // optional: true|false  - default false
+          popupFormat: popupFormat,   
     });
     layer.addTo(map);
-
+    map.addControl(searchControl);
+    ;
   });
 });
+
+
