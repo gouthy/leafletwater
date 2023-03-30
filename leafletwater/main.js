@@ -16,15 +16,9 @@ let provider = new OpenStreetMapProvider();
 
 
 
+/********************** loader ***********************/
 
-const map = L.map('map', {
-  center: [35.50, -90],
-  zoom: 5
-});
-
-var southWest = L.latLng(0, -180),
-  northEast = L.latLng(90, -60.885444);
-var bounds = L.latLngBounds(southWest, northEast);
+const loader = document.querySelector('#loader');
 
 
 
@@ -59,18 +53,27 @@ function getColor(d) {
 // }).addTo(map);
 
 var url_to_geotiff_file = 'https://temmdata.s3.us-east-005.backblazeb2.com/cogviolations.tif';
-
 fetch(url_to_geotiff_file)
 .then(response => response.arrayBuffer())
 .then(arrayBuffer => {
   parseGeoraster(arrayBuffer).then(georaster => {
+    loader.style.display = 'none';
+
+    const map = L.map('map', {
+      center: [35.50, -90],
+      zoom: 5
+    });
+    
+    var southWest = L.latLng(0, -180),
+      northEast = L.latLng(90, -60.885444);
+    var bounds = L.latLngBounds(southWest, northEast);
 
     L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}{r}.{ext}', {
-      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.hydroshare.org/resource/9ebc0a0b43b843b9835830ffffdd971e/">Simple lab</a> <a href="https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/sdwis_fed_reports_public/200"> & EPA</a>; ',
       subdomains: 'abcd',
       ext: 'png',
-      minNativeZoom: 4,
-      minZoom: 4,
+      minNativeZoom: 3,
+      minZoom: 3,
       maxNativeZoom: 11,
       maxZoom: 11,
       tms: false,
@@ -118,7 +121,30 @@ fetch(url_to_geotiff_file)
     });
     layer.addTo(map);
     map.addControl(searchControl);
-    ;
+    var legend = L.control({position: 'topright'});
+
+legend.onAdd = function (map) {
+
+    var div = L.DomUtil.create('div', 'info legend'),
+    grades = [0,1,5,10, 20, 40, 50, 100, 200],
+    labels = ['<strong> Violations </strong>'],
+    from, to;
+
+for (var i = 0; i < grades.length; i++) {
+    from = grades [i];
+    to = grades[i+1];
+
+labels.push(
+    '<i style="background:' + getColor(from) + '"></i> ' +
+    from + (to ? '&ndash;' + to : '+'));
+    }
+    div.innerHTML = labels.join('<br>');
+    return div;
+
+
+    };
+legend.addTo(map);
+
   });
 });
 
