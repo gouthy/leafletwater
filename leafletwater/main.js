@@ -52,7 +52,7 @@ function getColor(d) {
 
 // }).addTo(map);
 
-var url_to_geotiff_file = 'https://temmdata.s3.us-east-005.backblazeb2.com/cogviolations.tif';
+var url_to_geotiff_file = 'https://climateappdata.s3.amazonaws.com/violationsscore.tif';
 fetch(url_to_geotiff_file)
 .then(response => response.arrayBuffer())
 .then(arrayBuffer => {
